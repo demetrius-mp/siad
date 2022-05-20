@@ -3,6 +3,9 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 
+import matplotlib.pyplot as plt
+from matplotlib.colors import get_named_colors_mapping
+
 
 @dataclass(unsafe_hash=True)
 class Point:
@@ -32,17 +35,21 @@ class Cluster:
         self.points = points
 
     def update_centroid(self) -> None:
+        if len(self.points) == 0:
+            return
+
         x = sum(p.x for p in self.points) / len(self.points)
         y = sum(p.y for p in self.points) / len(self.points)
 
         self.centroid = Point(x, y)
 
 
+@dataclass
 class KMeans:
-    def __init__(self, points: list[Point], number_of_clusters: int) -> None:
-        self.points = points
-        self.number_of_clusters = number_of_clusters
-        self.clusters: dict[Point, Cluster] = dict()
+    points: list[Point]
+    number_of_clusters: int
+    clusters: dict[Point, Cluster] = field(default_factory=dict)
+    first_centroids: list[Point] = field(default_factory=list)
 
     def _get_closest_cluster_to_point(self, point: Point) -> Cluster:
         centroids = self.clusters.keys()
@@ -62,9 +69,12 @@ class KMeans:
         max_y = int(max(self.points, key=lambda p: p.y).y)
         min_y = int(min(self.points, key=lambda p: p.y).y)
 
-        for _ in range(self.number_of_clusters):
-            centroid = Point(random.randint(min_x, max_x), random.randint(min_y, max_y))
+        centroids_x = random.sample(range(min_x, max_x), self.number_of_clusters)
+        centroids_y = random.sample(range(min_y, max_y), self.number_of_clusters)
 
+        for x, y in zip(centroids_x, centroids_y):
+            centroid = Point(x, y)
+            self.first_centroids.append(centroid)
             self.clusters[centroid] = Cluster(centroid)
 
     def assign_points_to_closest_centroid(self) -> None:
@@ -83,7 +93,25 @@ class KMeans:
             for cluster in self.clusters.values():
                 cluster.update_centroid()
 
-        return self.clusters.values()
+        return [self.clusters[c] for c in self.clusters.keys()]
+
+
+def plot_clusters(*clusters: Cluster, title: str):
+    colors = get_named_colors_mapping().values()
+
+    for cluster, color in zip(clusters, colors):
+        x = [p.x for p in cluster.points]
+        y = [p.y for p in cluster.points]
+
+        plt.plot(x, y, "o", color=color)
+
+        centroid = cluster.centroid
+
+        plt.plot(centroid.x, centroid.y, "x", color=color)
+
+    plt.title(title)
+
+    plt.show()
 
 
 def main():
@@ -102,12 +130,20 @@ def main():
 
     k_means = KMeans(points, number_of_clusters)
 
-    number_of_iterations = 3
+    number_of_iterations = 5
 
     clusters = k_means(number_of_iterations)
 
+    print("--- Initial centroids ---")
+    for i, centroid in enumerate(k_means.first_centroids):
+        print(f"Cluster {i + 1} centroid: {centroid}")
+
+    print()
+    print("--- Final clusters ---")
     for cluster in clusters:
         print(cluster)
+
+    plot_clusters(*clusters, title=f"{number_of_iterations} iterations")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ authors = ["Demetrius Panovitch <demetrius.mp789@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+matplotlib = "^3.5.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
